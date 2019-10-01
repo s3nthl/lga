@@ -1,0 +1,96 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: pgadmin
+  labels:
+    app: pgadmin
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: pgadmin
+    spec:
+      containers:
+      - image: dpage/pgadmin4
+        name: pgadmin
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: SERVER_MODE
+          value: "TRUE"
+        - name: PGADMIN_DEFAULT_EMAIL
+          value: sam.arora@landg.com
+        - name: PGADMIN_DEFAULT_PASSWORD
+          value: PG4dm1nL&G
+        - name: GUNICORN_THREADS
+          value: "9"
+        ports:
+        - containerPort: 5050
+        volumeMounts:
+        - name: pgadmin
+          mountPath: /var/lib/pgadmin
+          subPath: data
+      volumes:
+      - name: pgadmin
+        persistentVolumeClaim:
+          claimName: pvc-pgadmin
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: kubernetes.io/azure-disk
+  labels:
+    app: pgadmin
+    role: data
+  name: pv-pgadmin
+spec:
+  storageClassName: default
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  azureFile:
+    secretName: coredevopsstorage-fileshare
+    shareName: pgadmin
+    readOnly: false
+  mountOptions:
+    # - dir_mode=0755
+    # - file_mode=0755
+    - uid=1
+    - gid=1
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc-pgadmin
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: pv-pgadmin
+
+
+#service#
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  labels:
+    app: pgadmin-svc
+  name: pgadmin-svc
+spec:
+  ports:
+  - name: pgadmin
+    port: 80
+    targetPort: 5050
+  selector:
+    app: pgadmin
+  type: LoadBalancer
+  # loadBalancerIP: 10.140.3.237

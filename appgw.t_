@@ -1,0 +1,122 @@
+
+
+resource "azurerm_public_ip" "appgwpip" {
+  count = 1
+  name                         = "${var.apgwpipname}"
+  location                     = "${var.location}"
+  resource_group_name          = "${azurerm_resource_group.rg.name}"
+  allocation_method = "Dynamic"
+}
+
+
+
+
+# Create an application gateway
+resource "azurerm_application_gateway" "appgw" {
+  name                = "${var.agwname}" 
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location            = "${var.location}"
+  // depends_on = ["azurerm_resource_group.myresourcegroup","azurerm_virtual_network.myvnet","azurerm_subnet.mysubnet2"]
+
+  sku {
+    name     = "WAF_Medium"
+    tier     = "WAF"
+    capacity = 2
+  }
+
+  gateway_ip_configuration {
+    name      = "gwipconfiguration"
+    subnet_id = "${azurerm_subnet.appgwsubnet.id}"
+  }
+
+  frontend_port {
+    name = "appGatewayFrontendPort"
+    port = 80
+  }
+  
+  frontend_port {
+    name         = "appGatewayFrontendPort443"
+    port         = 443
+  }
+
+  frontend_ip_configuration {
+    name                 = "appGatewayFrontendIP"
+    public_ip_address_id = "${azurerm_public_ip.appgwpip.id}"
+  }
+
+  backend_address_pool {
+    name = "appGatewayBackendPool-UI"
+    fqdns = ["${var.uihostname}"]
+  }
+  
+  backend_address_pool {
+    name = "appGatewayBackendPool-API"
+    fqdns = ["${var.apihostname}"]
+  }
+
+  backend_http_settings {
+    name                  = "appGatewayBackendHttpSettings"
+    cookie_based_affinity = "Disabled"
+    port                  = 80
+    protocol              = "Http"
+    request_timeout       = 1
+  }
+
+  http_listener {
+    name                           = "appGatewayHttpListener-UI"
+    frontend_ip_configuration_name = "appGatewayFrontendIP"
+    frontend_port_name             = "appGatewayFrontendPort"
+    protocol                       = "Http"
+    host_name                      = "${var.uihostname}"
+    ssl_certificate_name           = ""
+    
+  }
+  
+  http_listener {
+    name                           = "appGatewayHttpListener-API"
+    frontend_ip_configuration_name = "appGatewayFrontendIP"
+    frontend_port_name             = "appGatewayFrontendPort"
+    protocol                       = "Http"
+    host_name                      = "${var.apihostname}"
+    ssl_certificate_name           = ""
+    
+  }
+
+  request_routing_rule {
+    name                       = "rule1"
+    rule_type                  = "Basic"
+    http_listener_name         = "appGatewayHttpListener-UI"
+    backend_address_pool_name  = "appGatewayBackendPool-UI"
+    backend_http_settings_name = "appGatewayBackendHttpSettings"
+  }
+  
+  request_routing_rule {
+    name                       = "rule2"
+    rule_type                  = "Basic"
+    http_listener_name         = "appGatewayHttpListener-API"
+    backend_address_pool_name  = "appGatewayBackendPool-API"
+    backend_http_settings_name = "appGatewayBackendHttpSettings"
+  }
+  
+  probe {
+    host = "127.0.0.1"
+    name     = "Probe1-http"
+    protocol = "Http"
+    path     = "/"
+    interval = "30"
+    timeout  = "10"
+    unhealthy_threshold = "3"
+    minimum_servers = "0"
+    
+      }
+  
+  waf_configuration {
+    enabled = "true"
+    firewall_mode  = "Prevention"
+    rule_set_type  = "OWASP"
+    rule_set_version = "3.0"
+    
+    
+  }
+    
+  }

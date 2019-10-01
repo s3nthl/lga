@@ -1,0 +1,26 @@
+# create SQL instances required for this environment
+resource "azurerm_sql_server" "sqlserver" {
+    name                = "${var.sqlservername}" 
+    resource_group_name = "${azurerm_resource_group.rg.name}"
+    location            = "${var.location}"
+    version             = "12.0"
+    administrator_login = "${var.sqluser}"  
+    administrator_login_password = "${var.sqlpassword}"  
+}
+
+resource "azurerm_sql_virtual_network_rule" "mysqlvnetrule1" {
+  name                = "sql-cordasubnet-rule"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  server_name         = "${azurerm_sql_server.sqlserver.name}"
+  subnet_id           = "${azurerm_subnet.cordasubnet.id}"
+}
+
+
+
+resource "azurerm_sql_database" "mysqldbs" {
+  count = 2
+  name                = "${element(var.sqldbnames, count.index)}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location = "${var.location}"
+  server_name = "${azurerm_sql_server.sqlserver.name}"
+}

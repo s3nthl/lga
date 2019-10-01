@@ -1,0 +1,23 @@
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: tls-secret
+  
+spec:
+  secretName: tls-secret
+  dnsNames:
+  # - lgahorizon.com
+  - jenkins.lgahorizon.com
+  - sonar.lgahorizon.com
+  # - bitbucket.lgahorizon.com
+  acme:
+    config:
+    - http01:
+        ingressClass: nginx
+      domains:
+      - jenkins.lgahorizon.com
+      - sonar.lgahorizon.com
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+    namespace: cert-manager

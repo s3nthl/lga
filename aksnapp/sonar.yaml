@@ -1,0 +1,95 @@
+---
+###########
+#  SONAR  #
+###########
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: sonar
+  labels:
+    app: sonar
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sonar
+    spec:
+      containers:
+      - image: sonarqube:6.7.6-community 
+        imagePullPolicy: IfNotPresent
+        name: sonar
+        resources:
+          requests:
+            memory: "128Mi"
+          limits:
+            memory: "2048Mi"
+        ports:
+        - containerPort: 9000
+        volumeMounts:
+          - name: sonar
+            mountPath: /opt/sonarqube/conf
+            subPath: conf
+          - name: sonar
+            mountPath: /opt/sonarqube/data
+            subPath: data
+          - name: sonar
+            mountPath: /opt/sonarqube/extensions
+            subPath: extensions
+          - name: sonar
+            mountPath: /opt/sonarqube/logs
+            subPath: logs
+      volumes:
+        - name: sonar
+          persistentVolumeClaim:
+            claimName: pvc-sonar
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  name: sonar
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 9000
+  selector:
+    app: sonar
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: kubernetes.io/azure-disk
+  labels:
+    app: sonar
+    role: data
+  name: pv-sonar
+spec:
+  storageClassName: default
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  azureFile:
+    secretName: coredevopsstorage-fileshare
+    shareName: sonar
+    readOnly: false
+  # mountOptions:
+  #   - uid=1
+  #   - gid=1
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc-sonar
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: pv-sonar

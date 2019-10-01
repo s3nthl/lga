@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: confluence-deployment
+  labels:
+    app: confluence
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: confluence
+  template:
+    metadata:
+      labels:
+        app: confluence
+    spec:
+      containers:
+      - name: confluence
+        image: atlassian/confluence-server
+        resources:
+          requests:
+            memory: "2048Mi"
+          limits:
+            memory: "4096Mi"
+        ports:
+        - containerPort: 8090
+          name: confluence-http
+        - containerPort: 8091
+          name: confluence-ssh
+        volumeMounts:
+          - name: confluence
+            mountPath: /var/atlassian/application-data/confluence
+            subPath: home
+          # - name: confluence
+          #   mountPath: /opt/atlassian/confluence/logs
+          #   subPath: logs
+          # - name: confluence
+          #   mountPath: /var/atlassian/application-data/confluence
+          #   subPath: data
+      volumes:
+        - name: confluence
+          persistentVolumeClaim:
+            claimName: pvc-confluence
+---
+kind: Service
+apiVersion: v1
+metadata:
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  name: confluence-service
+spec:
+  selector:
+    app: confluence
+  ports:
+  - name: confluence-http
+    port: 80
+    targetPort: confluence-http
+  # - name: confluence-ssh
+  #   port: 22
+  #   targetPort: confluence-ssh
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: kubernetes.io/azure-disk
+  labels:
+    app: confluence
+    role: data
+  name: pv-confluence
+spec:
+  storageClassName: default
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  azureFile:
+    secretName: coredevopsstorage-fileshare
+    shareName: confluence
+    readOnly: false
+  # mountOptions:
+  #   - uid=1
+  #   - gid=1
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc-confluence
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: pv-confluence

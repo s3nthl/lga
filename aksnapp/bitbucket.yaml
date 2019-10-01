@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bitbucket-deployment
+  labels:
+    app: bitbucket
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bitbucket
+  template:
+    metadata:
+      labels:
+        app: bitbucket
+    spec:
+      containers:
+      - name: bitbucket
+        image: atlassian/bitbucket-server
+        resources:
+          requests:
+            memory: "2048Mi"
+          limits:
+            memory: "4096Mi"
+        ports:
+        - containerPort: 7990
+          name: bitbucket-http
+        - containerPort: 7999
+          name: bitbucket-ssh
+        volumeMounts:
+          - name: bitbucket
+            mountPath: /var/atlassian/bitbucket
+            subPath: workdir
+          - name: bitbucket
+            mountPath: /opt/atlassian/bitbucket/logs
+            subPath: logs
+          - name: bitbucket
+            mountPath: /var/atlassian/application-data/bitbucket
+            subPath: data
+      volumes:
+        - name: bitbucket
+          persistentVolumeClaim:
+            claimName: pvc-bitbucket
+---
+kind: Service
+apiVersion: v1
+metadata:
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  name: bitbucket-service
+spec:
+  selector:
+    app: bitbucket
+  ports:
+  - name: bitbucket-http
+    port: 80
+    targetPort: bitbucket-http
+  - name: bitbucket-ssh
+    port: 22
+    targetPort: bitbucket-ssh
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: kubernetes.io/azure-disk
+  labels:
+    app: bitbucket
+    role: data
+  name: pv-bitbucket
+spec:
+  storageClassName: default
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  azureFile:
+    secretName: coredevopsstorage-fileshare
+    shareName: bitbucket
+    readOnly: false
+  mountOptions:
+    - uid=1
+    - gid=1
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc-bitbucket
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: pv-bitbucket
