@@ -3,31 +3,31 @@
 # subscription_id_core = "10d15b90-a53a-4201-8087-61d52e0dc85b" ##Coresub##
 
 
-devopsrg = "HOR-DEV-NETWORK-RG" #RG name#
-aksrg = "HOR-DEVOPS-AKS-RG"
+devopsrg = "AZ-DEV-NETWORK-RG" #RG name#
+aksrg = "AZ-DEVOPS-AKS-RG"
 location = "eastus2"
-vnet = "LGA-IT-HORIZON-DEV-VNET-EAST2-10.253.0.0-16" #vnet#
+vnet = "AZ-IT-HORIZON-DEV-VNET-EAST2-10.253.0.0-16" #vnet#
 // subnet_appgw = ""
-subnet = "LGA-IT-HORIZON-DEV-AKSSUBNET-EAST2" 
+subnet = "AZ-IT-HORIZON-DEV-AKSSUBNET-EAST2" 
 dns_servers = ["8.8.8.8","8.8.4.4"]
 address_space = ["10.253.0.0/16"]
 // address_subnet_appgw = ""
 address_subnet = "10.253.8.0/21"
 
 
-aks = "LGA-DEVOPS-AKS" #aks name#
-aksdns = "lga-dvo-aks" 
-aksvmname = "kslildlvak1" 
+aks = "AZ-DEVOPS-AKS" #aks name#
+aksdns = "az-dvo-aks" 
+aksvmname = "azkslildlvak1" 
 vmsize = "Standard_D8_v3" 
-tag = "devops"
+tag = "azdevops"
 aksnodecount = "2"
 
 
-aks_nsg_name = "aks-nsg"
+aks_nsg_name = "azaks-nsg"
 
-devops_storage_name = "lgadevops"
-jenkins_share_name = "jenkins"
-sonar_share_name = "sonar"
+devops_storage_name = "azlgadevops"
+jenkins_share_name = "azjenkins"
+sonar_share_name = "azsonar"
 
 
 // agwname = ""

@@ -21,14 +21,6 @@ resource "azurerm_virtual_network" "vnet" {
   resource_group_name = "${azurerm_resource_group.devopsrg.name}"
 }
 
-resource "azurerm_virtual_network" "vnet2" {
-  name                = "vnet_test"
-  address_space       = ["10.0.0.0/16"]
-  dns_servers         = "${var.dns_servers}"
-  location            = "${azurerm_resource_group.devopsrg.location}"
-  resource_group_name = "${azurerm_resource_group.devopsrg.name}"
-}
-
 resource "azurerm_subnet" "subnet" {
   name                 = "${var.subnet}"
   resource_group_name  = "${azurerm_resource_group.devopsrg.name}"
